@@ -7,8 +7,8 @@ const EditPage: React.FC = () => {
   const { image } = useImage();
   const [overlayText, setOverlayText] = useState<string>("");
   const [overlayImage, setOverlayImage] = useState<string | null>(null);
-  const [overlayImageFile, setOverlayImageFile] = useState<File | null>(null); // File state for background removal
-  const [isRemovingBg, setIsRemovingBg] = useState(false); // State to show loading while removing background
+  const [overlayImageFile, setOverlayImageFile] = useState<File | null>(null);
+  const [isRemovingBg, setIsRemovingBg] = useState(false);
 
   const [textPosition, setTextPosition] = useState<{ x: number; y: number }>({ x: 50, y: 50 });
   const [isDraggingText, setIsDraggingText] = useState(false);
@@ -23,6 +23,10 @@ const EditPage: React.FC = () => {
   const [isResizingImage, setIsResizingImage] = useState(false);
   const [imageDimensions, setImageDimensions] = useState<{ width: number; height: number } | null>(null);
 
+  const [thumbnailWithNoBg, setThumbnailWithNoBg] = useState<string | null>(null);
+  const [textZIndex, setTextZIndex] = useState<number>(5);
+  const [overlayImageZIndex, setOverlayImageZIndex] = useState<number>(10); // Initial z-index for overlay image
+
   const textRef = useRef<HTMLDivElement>(null);
   const dragStart = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
@@ -33,26 +37,27 @@ const EditPage: React.FC = () => {
   const handleOverlayImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      setOverlayImageFile(file); // Save file for backend processing
+      setOverlayImageFile(file);
 
       const reader = new FileReader();
       reader.onload = () => {
         if (typeof reader.result === "string") {
           setOverlayImage(reader.result);
-          setImageDimensions({ width: 100, height: 100 }); // Initial overlay image dimensions
+          setImageDimensions({ width: 100, height: 100 });
         }
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const handleRemoveBg = async () => {
-    if (!overlayImageFile) return;
+  const handleRemoveBg = async (forThumbnail: boolean = false) => {
+    const file = forThumbnail ? await fetch(image).then(res => res.blob()).then(blob => new File([blob], 'thumbnail.png')) : overlayImageFile;
+    if (!file) return;
 
-    setIsRemovingBg(true); // Start loading spinner
+    setIsRemovingBg(true);
     try {
       const formData = new FormData();
-      formData.append("image", overlayImageFile);
+      formData.append("image", file);
 
       const response = await fetch('http://localhost:3001/api/remove-background', {
         method: 'POST',
@@ -61,14 +66,18 @@ const EditPage: React.FC = () => {
 
       if (response.ok) {
         const { base64Image } = await response.json();
-        setOverlayImage(`data:image/png;base64,${base64Image}`); // Update overlay image with background removed
+        if (forThumbnail) {
+          setThumbnailWithNoBg(`data:image/png;base64,${base64Image}`);
+        } else {
+          setOverlayImage(`data:image/png;base64,${base64Image}`);
+        }
       } else {
         console.error("Failed to remove background");
       }
     } catch (error) {
       console.error("Error removing background:", error);
     } finally {
-      setIsRemovingBg(false); // End loading spinner
+      setIsRemovingBg(false);
     }
   };
 
@@ -120,22 +129,57 @@ const EditPage: React.FC = () => {
     else setIsResizingImage(true);
   };
 
+  const handleMoveTextBehind = () => {
+    setTextZIndex(1);
+  };
+
+  const handleMoveTextFront = () => {
+    setTextZIndex(11);
+  };
+
+  const moveOverlayImageBelowAll = () => {
+    setOverlayImageZIndex(0); // Set overlay image below all layers
+  };
+
+  const moveOverlayImageBetween = () => {
+    setOverlayImageZIndex(7); // Place overlay image between the no-bg image and text
+  };
+
+  const moveOverlayImageAboveAll = () => {
+    setOverlayImageZIndex(15); // Set overlay image above all layers
+  };
+
   const computedFontSize = textDimensions.height * 0.5;
 
   return (
     <div className="edit-container text-center" onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}>
       <h1 className="mb-4 text-2xl font-bold">Edit Image</h1>
       <div className="relative inline-block">
-        {/* Display selected image */}
         <img
           src={image}
           alt="Selected Thumbnail"
           className="w-full max-w-md"
           onLoad={(e) => setImageDimensions({ width: e.currentTarget.width, height: e.currentTarget.height })}
-          style={{ userSelect: "none" }}
+          style={{ userSelect: "none", zIndex: 0 }}
         />
 
-        {/* Draggable and Resizable Text Overlay */}
+        {thumbnailWithNoBg && (
+          <img
+            src={thumbnailWithNoBg}
+            alt="Thumbnail with No Background"
+            className="absolute"
+            style={{
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              zIndex: 10,
+              pointerEvents: 'none',
+              userSelect: 'none',
+            }}
+          />
+        )}
+
         {overlayText && (
           <div
             ref={textRef}
@@ -153,6 +197,7 @@ const EditPage: React.FC = () => {
               alignItems: "center",
               justifyContent: "center",
               userSelect: "none",
+              zIndex: textZIndex,
             }}
             onMouseDown={(e) => handleMouseDown(e, true)}
           >
@@ -172,7 +217,6 @@ const EditPage: React.FC = () => {
           </div>
         )}
 
-        {/* Draggable and Resizable Image Overlay */}
         {overlayImage && (
           <img
             src={overlayImage}
@@ -184,6 +228,7 @@ const EditPage: React.FC = () => {
               width: `${imageDimensions?.width || 100}px`,
               height: `${imageDimensions?.height || 100}px`,
               userSelect: "none",
+              zIndex: overlayImageZIndex,
             }}
             onMouseDown={(e) => handleMouseDown(e, false)}
           />
@@ -204,7 +249,6 @@ const EditPage: React.FC = () => {
         )}
       </div>
 
-      {/* Controls for adding overlays */}
       <div className="controls mt-6">
         <h2 className="text-lg font-semibold mb-2">Add Text Overlay</h2>
         <input
@@ -223,16 +267,55 @@ const EditPage: React.FC = () => {
           className="mb-4"
         />
 
-        {/* Button for removing background */}
         {overlayImage && (
           <button
-            onClick={handleRemoveBg}
+            onClick={() => handleRemoveBg(false)}
             disabled={isRemovingBg}
-            className="bg-blue-500 text-white p-2 rounded"
+            className="bg-blue-500 text-white p-2 rounded mb-4"
           >
-            {isRemovingBg ? 'Removing Background...' : 'Remove Background'}
+            {isRemovingBg ? 'Removing Background...' : 'Remove Background of Overlay'}
           </button>
         )}
+
+        <button
+          onClick={() => handleRemoveBg(true)}
+          disabled={isRemovingBg}
+          className="bg-green-500 text-white p-2 rounded mb-4"
+        >
+          {isRemovingBg ? 'Removing Background...' : 'Remove Background of Base Image'}
+        </button>
+
+        <button
+          onClick={handleMoveTextBehind}
+          className="bg-yellow-500 text-white p-2 rounded mb-4"
+        >
+          Move Text Behind No-BG Image
+        </button>
+        <button
+          onClick={handleMoveTextFront}
+          className="bg-purple-500 text-white p-2 rounded mb-4"
+        >
+          Move Text In Front of No-BG Image
+        </button>
+
+        <button
+          onClick={moveOverlayImageBelowAll}
+          className="bg-gray-500 text-white p-2 rounded mb-4"
+        >
+          Move Overlay Image Below All
+        </button>
+        <button
+          onClick={moveOverlayImageBetween}
+          className="bg-indigo-500 text-white p-2 rounded mb-4"
+        >
+          Move Overlay Image Between
+        </button>
+        <button
+          onClick={moveOverlayImageAboveAll}
+          className="bg-pink-500 text-white p-2 rounded mb-4"
+        >
+          Move Overlay Image Above All
+        </button>
       </div>
 
       <style jsx>{`
