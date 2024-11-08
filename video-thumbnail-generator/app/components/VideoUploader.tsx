@@ -1,6 +1,8 @@
 "use client";
 import "../App.css";
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation"; // Changed from next/router
+import { useImage } from '../ImageContext';
 
 const VideoUploader: React.FC = () => {
   const [video, setVideo] = useState<File | null>(null);
@@ -9,6 +11,9 @@ const VideoUploader: React.FC = () => {
   const [progress, setProgress] = useState<number>(0); // Track upload progress
   const [backendProgress, setBackendProgress] = useState<number>(0); // Track backend progress
   const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
+  const { setImage } = useImage();
+
+  const router = useRouter(); // Initialize router
 
   const handleVideoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
@@ -98,6 +103,11 @@ const VideoUploader: React.FC = () => {
     }
   };
 
+  const handleEditImage = (imageUrl: string) => {
+    setImage(imageUrl); // Store the image data in context
+    router.push('/edit'); // Navigate to the edit page without including image data in URL
+  };
+
   return (
     <div className="App text-center">
       <header className="nav-bar flex justify-between items-center p-4 md:mx-20 bg-white">
@@ -174,15 +184,19 @@ const VideoUploader: React.FC = () => {
                   <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {thumbnails.map((thumbnail, index) => (
                       <div key={index} className="flex flex-col items-center">
-                        <p className="mb-2 text-gray-700">
-                          Thumbnail {index + 1}:
-                        </p>
+                        <p className="mb-2 text-gray-700">Thumbnail {index + 1}:</p>
                         <img
                           src={thumbnail}
                           alt={`Thumbnail ${index + 1}`}
                           className="w-full rounded-lg border border-gray-300 shadow-sm"
                           onClick={() => setEnlargedImage(thumbnail)}
                         />
+                        <button
+                          onClick={() => handleEditImage(thumbnail)}
+                          className="mt-2 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                        >
+                          Edit Image
+                        </button>
                       </div>
                     ))}
                   </div>

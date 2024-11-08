@@ -11,6 +11,8 @@ const { rateThumbnails } = require('./rating.js');
 const { query } = require('./imageCaptioning');
 const { selectDiverseFrames } = require('./frameSelection');
 const app = express();
+const backgroundRemoval = require('./backgroundRemoval');
+
 
 const http = require('http');
 const WebSocket = require('ws');
@@ -20,7 +22,12 @@ const wss = new WebSocket.Server({ server });
 ffmpeg.setFfmpegPath('C:\\ffmpeg\\ffmpeg.exe');
 ffmpeg.setFfprobePath('C:\\ffmpeg\\ffprobe.exe');
 
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:3002', // Replace with your frontend's address
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type'],
+}));
+
 const upload = multer({ dest: 'uploads/' });
 
 app.use((req, res, next) => {
@@ -43,6 +50,8 @@ wss.on('connection', (ws) => {
   ws.on('message', (message) => console.log(`Received: ${message}`));
   ws.send(JSON.stringify({ message: 'WebSocket connected' }));
 });
+
+app.use('/api', backgroundRemoval); // Add this line to register the background removal API
 
 app.post('/api/thumbnail', upload.single('video'), async (req, res) => {
   const videoPath = req.file.path;
