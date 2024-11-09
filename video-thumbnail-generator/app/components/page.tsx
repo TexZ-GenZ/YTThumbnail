@@ -1,8 +1,7 @@
 "use client";
-import "../App.css";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation"; // Changed from next/router
-import { useImage } from '../ImageContext';
+import { useImage } from "../ImageContext";
 
 const VideoUploader: React.FC = () => {
   const [video, setVideo] = useState<File | null>(null);
@@ -105,37 +104,14 @@ const VideoUploader: React.FC = () => {
 
   const handleEditImage = (imageUrl: string) => {
     setImage(imageUrl); // Store the image data in context
-    router.push('/edit'); // Navigate to the edit page without including image data in URL
+    router.push("/edit"); // Navigate to the edit page without including image data in URL
   };
 
   return (
-    <div className="App text-center">
-      <header className="nav-bar flex justify-between items-center p-4 md:mx-20 bg-white">
-        <a
-          href="#"
-          className="logo font-bold text-3xl md:text-5xl text-black no-underline"
-        >
-          FrameGrab
-        </a>
-        <div className="auth-buttons flex gap-2">
-          <button className="sign-in-btn px-4 py-2 bg-red-600 text-white cursor-pointer rounded hover:bg-red-700">
-            Sign In
-          </button>
-        </div>
-      </header>
-
+    <div className="text-center text-black">
       <main className="hero-section bg-gray-100 pt-8 h-[700px] flex md:flex-row items-center justify-between px-6 md:px-36 py-12">
         <div className="hero-main-content flex md:justify-between gap-16">
           <div className="hero-content max-w-lg text-left">
-            <h1 className="text-3xl md:text-5xl font-bold mb-4">
-              Generate High-Quality Video Thumbnails in Seconds
-            </h1>
-            <p className="para text-lg leading-7 mb-4">
-              Say goodbye to manual thumbnail creation! Our tool quickly
-              extracts high-quality frames from your videos, making it
-              effortless to generate engaging and clickable thumbnails in
-              seconds
-            </p>
             <input
               type="file"
               accept="video/*"
@@ -184,7 +160,9 @@ const VideoUploader: React.FC = () => {
                   <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {thumbnails.map((thumbnail, index) => (
                       <div key={index} className="flex flex-col items-center">
-                        <p className="mb-2 text-gray-700">Thumbnail {index + 1}:</p>
+                        <p className="mb-2 text-gray-700">
+                          Thumbnail {index + 1}:
+                        </p>
                         <img
                           src={thumbnail}
                           alt={`Thumbnail ${index + 1}`}
@@ -216,13 +194,6 @@ const VideoUploader: React.FC = () => {
                 )}
               </div>
             )}
-          </div>
-          <div className="hero-image mt-8 md:mt-0">
-            <img
-              src="https://www.vdocipher.com/blog/wp-content/uploads/2023/12/DALL%C2%B7E-2023-12-10-20.21.58-A-creative-and-visually-appealing-featured-image-for-a-blog-about-video-thumbnails-for-various-social-platforms-like-YouTube-Instagram-and-TikTok-s-1024x585.png"
-              alt="Landing page builder demo"
-              className="max-w-[600px] h-auto rounded shadow-lg"
-            />
           </div>
         </div>
       </main>
